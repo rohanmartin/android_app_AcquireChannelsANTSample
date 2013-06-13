@@ -63,31 +63,6 @@ public class ChannelList extends Activity {
     {
         Log.v(TAG, "initButtons...");
         
-        //Register OnOff Toggle handler
-        ToggleButton toggleButton_offOn = (ToggleButton)findViewById(R.id.toggleButton_OffOn);
-        toggleButton_offOn.setChecked(mRunChannelService);
-        toggleButton_offOn.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
-                    {                                
-                        @Override
-                        public void onCheckedChanged(CompoundButton arg0, boolean enabled)
-                        {
-                            mRunChannelService = enabled;
-                            
-                            if(mRunChannelService)
-                            {
-                                doBindChannelService();
-                            }
-                            else
-                            {
-                                // We have explicitly said to turn off, so clear channel list
-                                clearAllChannels();
-                                
-                                doUnbindChannelService();
-                            }
-                            
-                        }
-                    });
-        
         //Register Master/Slave Toggle handler
         ToggleButton toggleButton_MasterSlave = (ToggleButton)findViewById(R.id.toggleButton_MasterSlave);
         toggleButton_MasterSlave.setEnabled(mRunChannelService);
@@ -110,6 +85,18 @@ public class ChannelList extends Activity {
             public void onClick(View v)
             {
                 addNewChannel(mCreateChannelAsMaster);
+            }
+        });
+        
+      //Register Clear Channels Button handler
+        Button button_clearChannels = (Button)findViewById(R.id.button_ClearChannels);
+        button_clearChannels.setEnabled(mRunChannelService);
+        button_clearChannels.setOnClickListener(new OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                clearAllChannels();
             }
         });
         
@@ -171,6 +158,7 @@ public class ChannelList extends Activity {
             mChannelServiceBound = false;
         }
         
+        ((Button)findViewById(R.id.button_ClearChannels)).setEnabled(false);
         ((Button)findViewById(R.id.button_AddChannel)).setEnabled(false);
         ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(false);
         
@@ -216,41 +204,6 @@ public class ChannelList extends Activity {
         super.onDestroy();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        Log.v(TAG, "onCreateOptionsMenu...");
-        
-        getMenuInflater().inflate(R.menu.activity_channel_list, menu);
-        
-        Log.v(TAG, "...onCreateOptionsMenu");
-        return true;
-    }   
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item)
-    {
-        Log.v(TAG, "onOptionsItemSelected...");
-        
-        boolean itemConsumed = false;
-        
-        switch(item.getItemId())
-        {
-            case R.id.menu_ClearAll:
-                clearAllChannels();
-                itemConsumed = true;
-                break;
-            // TODO add menu item to show all channel configuration
-            default:
-                // Ignore unknown
-                break;
-        }
-        
-        Log.v(TAG, "...onOptionsItemSelected");
-        
-        return itemConsumed;
-    }
-    
-    
     private ServiceConnection mChannelServiceConnection = new ServiceConnection()
     {
         @Override
@@ -283,12 +236,14 @@ public class ChannelList extends Activity {
 
                 @Override
                 public void onChannelAvailable(boolean hasChannel) {
+                    ((Button)findViewById(R.id.button_ClearChannels)).setEnabled(hasChannel);
                     ((Button)findViewById(R.id.button_AddChannel)).setEnabled(hasChannel);
                     ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(hasChannel);
                 }
             });
 
             boolean hasChannel = mChannelService.isChannelAvailable();
+            ((Button)findViewById(R.id.button_ClearChannels)).setEnabled(hasChannel);
             ((Button)findViewById(R.id.button_AddChannel)).setEnabled(hasChannel);
             ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(hasChannel);
             
@@ -304,6 +259,7 @@ public class ChannelList extends Activity {
             
             mChannelService = null;
             
+            ((Button)findViewById(R.id.button_ClearChannels)).setEnabled(false);
             ((Button)findViewById(R.id.button_AddChannel)).setEnabled(false);
             ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(false);
             
