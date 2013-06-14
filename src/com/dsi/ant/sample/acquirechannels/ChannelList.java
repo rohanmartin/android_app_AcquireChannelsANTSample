@@ -29,8 +29,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.util.SparseArray;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
@@ -45,9 +43,6 @@ import java.util.ArrayList;
 public class ChannelList extends Activity {
     private static final String TAG = ChannelList.class.getSimpleName();
     
-    private final String PREF_ONOFF_BUTTON_CHECKED_KEY = "ChannelList.ONOFF_BUTTON_CHECKED";
-    private boolean mRunChannelService;
-    
     private final String PREF_TX_BUTTON_CHECKED_KEY = "ChannelList.TX_BUTTON_CHECKED";
     private boolean mCreateChannelAsMaster;
     
@@ -57,7 +52,7 @@ public class ChannelList extends Activity {
     private ArrayAdapter<String> mChannelListAdapter;
     private SparseArray<Integer> mIdChannelListIndexMap = new SparseArray<Integer>();
     
-    private boolean mChannelServiceBound;
+    private boolean mChannelServiceBound = false;
     
     private void initButtons()
     {
@@ -65,7 +60,7 @@ public class ChannelList extends Activity {
         
         //Register Master/Slave Toggle handler
         ToggleButton toggleButton_MasterSlave = (ToggleButton)findViewById(R.id.toggleButton_MasterSlave);
-        toggleButton_MasterSlave.setEnabled(mRunChannelService);
+        toggleButton_MasterSlave.setEnabled(mChannelServiceBound);
         toggleButton_MasterSlave.setChecked(mCreateChannelAsMaster);
         toggleButton_MasterSlave.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
         {
@@ -78,7 +73,7 @@ public class ChannelList extends Activity {
         
         //Register Add Channel Button handler
         Button button_addChannel = (Button)findViewById(R.id.button_AddChannel);
-        button_addChannel.setEnabled(mRunChannelService);
+        button_addChannel.setEnabled(mChannelServiceBound);
         button_addChannel.setOnClickListener(new OnClickListener()
         {
             @Override
@@ -90,7 +85,7 @@ public class ChannelList extends Activity {
         
       //Register Clear Channels Button handler
         Button button_clearChannels = (Button)findViewById(R.id.button_ClearChannels);
-        button_clearChannels.setEnabled(mRunChannelService);
+        button_clearChannels.setEnabled(mChannelServiceBound);
         button_clearChannels.setOnClickListener(new OnClickListener()
         {
             @Override
@@ -110,8 +105,6 @@ public class ChannelList extends Activity {
         //Handle resuming the current state of data collection as saved in the preference
         SharedPreferences preferences = getPreferences(MODE_PRIVATE);
         
-        mRunChannelService = preferences.getBoolean(PREF_ONOFF_BUTTON_CHECKED_KEY, true);
-        
         mCreateChannelAsMaster = preferences.getBoolean(PREF_TX_BUTTON_CHECKED_KEY, true);
         
         Log.v(TAG, "...initPrefs");
@@ -124,7 +117,6 @@ public class ChannelList extends Activity {
         SharedPreferences preferences = getPreferences(MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         
-        editor.putBoolean(PREF_ONOFF_BUTTON_CHECKED_KEY, mRunChannelService);
         editor.putBoolean(PREF_TX_BUTTON_CHECKED_KEY, mCreateChannelAsMaster);
         
         editor.commit();
@@ -137,6 +129,7 @@ public class ChannelList extends Activity {
         Log.v(TAG, "doBindChannelService...");
         
         Intent bindIntent = new Intent(this, ChannelService.class);
+        startService(bindIntent);
         mChannelServiceBound = bindService(bindIntent, mChannelServiceConnection, Context.BIND_AUTO_CREATE);
         
         if(!mChannelServiceBound)   //If the bind returns false, run the unbind method to update the GUI
@@ -181,11 +174,15 @@ public class ChannelList extends Activity {
         ListView listView_channelList = (ListView)findViewById(R.id.listView_channelList);
         listView_channelList.setAdapter(mChannelListAdapter);
         
+        if(!mChannelServiceBound) doBindChannelService();
+        
         initButtons();
         
-        if(mRunChannelService) doBindChannelService();
-        
         Log.v(TAG, "...onCreate");
+    }
+    
+    public void onBack() {
+        finish();
     }
     
     @Override
@@ -194,6 +191,11 @@ public class ChannelList extends Activity {
         Log.v(TAG, "onDestroy...");
         
         doUnbindChannelService();
+        
+        if(isFinishing()) 
+        {
+            stopService(new Intent(this, ChannelService.class));
+        }
 
         mChannelServiceConnection = null;
 
@@ -236,14 +238,12 @@ public class ChannelList extends Activity {
 
                 @Override
                 public void onChannelAvailable(boolean hasChannel) {
-                    ((Button)findViewById(R.id.button_ClearChannels)).setEnabled(hasChannel);
                     ((Button)findViewById(R.id.button_AddChannel)).setEnabled(hasChannel);
                     ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(hasChannel);
                 }
             });
 
             boolean hasChannel = mChannelService.isChannelAvailable();
-            ((Button)findViewById(R.id.button_ClearChannels)).setEnabled(hasChannel);
             ((Button)findViewById(R.id.button_AddChannel)).setEnabled(hasChannel);
             ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(hasChannel);
             

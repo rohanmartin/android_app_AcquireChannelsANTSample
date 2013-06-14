@@ -137,7 +137,6 @@ public class ChannelService extends Service
                 mChannelControllerList.valueAt(i).close();
             }
             mChannelControllerList.clear();
-            stopSelf();
         }
         
     }
@@ -164,11 +163,6 @@ public class ChannelService extends Service
       
         synchronized(mCreateChannel_LOCK)
         {
-            if(mChannelControllerList.size() == 0)
-            {
-                Intent i = new Intent(this, this.getClass());
-                startService(i);
-            }
             AntChannel antChannel = acquireChannel();
             
             if(null != antChannel)
