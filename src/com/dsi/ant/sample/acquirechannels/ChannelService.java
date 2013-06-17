@@ -203,6 +203,7 @@ public class ChannelService extends Service
             if(AntChannelProvider.ACTION_CHANNEL_PROVIDER_STATE_CHANGED.equals(intent.getAction())) {
                 boolean update = false;
                 int numChannels = intent.getIntExtra(AntChannelProvider.NUM_CHANNELS_AVAILABLE, 0);
+                boolean wholeChipInterfaceInUse = intent.getBooleanExtra(AntChannelProvider.WHOLE_CHIP_INTERFACE_IN_USE, false);
                 
                 if(mChannelAvailable) {
                     // Was a channel available
@@ -218,6 +219,12 @@ public class ChannelService extends Service
                         mChannelAvailable = true;
                         update = true;
                     }
+                }
+                
+                // If whole chip interface in use; allow acquiring of channels
+                if(wholeChipInterfaceInUse) {
+                    mChannelAvailable = true;
+                    update = true;
                 }
                 
                 if(update && (null != mListener)) {
