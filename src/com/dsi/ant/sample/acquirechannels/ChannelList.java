@@ -237,15 +237,15 @@ public class ChannelList extends Activity {
                 }
 
                 @Override
-                public void onChannelAvailable(boolean hasChannel) {
-                    ((Button)findViewById(R.id.button_AddChannel)).setEnabled(hasChannel);
-                    ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(hasChannel);
+                public void onAllowAddChannel(boolean addChannelAllowed) {
+                    ((Button)findViewById(R.id.button_AddChannel)).setEnabled(addChannelAllowed);
+                    ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(addChannelAllowed);
                 }
             });
 
-            boolean hasChannel = mChannelService.isChannelAvailable();
-            ((Button)findViewById(R.id.button_AddChannel)).setEnabled(hasChannel);
-            ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(hasChannel);
+            boolean allowAcquireChannel = mChannelService.isAddChannelAllowed();
+            ((Button)findViewById(R.id.button_AddChannel)).setEnabled(allowAcquireChannel);
+            ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(allowAcquireChannel);
             
             refreshList();
             

@@ -53,7 +53,7 @@ public class ChannelService extends Service
     private boolean mAntRadioServiceBound;
     private AntService mAntRadioService = null;
     private AntChannelProvider mAntChannelProvider = null;
-    private boolean mChannelAvailable = false;
+    private boolean mAllowAddChannel = false;
     
     private ServiceConnection mAntRadioServiceConnection = new ServiceConnection()
     {
@@ -64,11 +64,22 @@ public class ChannelService extends Service
             
             try {
                 mAntChannelProvider = mAntRadioService.getChannelProvider();
-                mChannelAvailable = (mAntChannelProvider.getNumChannelsAvailable() > 0);
                 
-                if(mChannelAvailable) {
+                boolean mChannelAvailable = mAntChannelProvider.getNumChannelsAvailable() > 0;
+                boolean legacyInterfaceInUse = mAntChannelProvider.isLegacyInterfaceInUse();
+                
+                // If there are channels OR legacy interface in use, allow adding channels
+                if(mChannelAvailable || legacyInterfaceInUse) {
+                    mAllowAddChannel = true;
+                }
+                else {
+                    // If no channels available AND legacy interface is not in use, disallow adding channels
+                    mAllowAddChannel = false;
+                }
+                
+                if(mAllowAddChannel) {
                     if(null != mListener) {
-                    mListener.onChannelAvailable(true);
+                    mListener.onAllowAddChannel(mAllowAddChannel);
                     }
                 }
                 
@@ -86,8 +97,8 @@ public class ChannelService extends Service
             mAntChannelProvider = null;
             mAntRadioService = null;
             
-            if(mChannelAvailable) { mListener.onChannelAvailable(false); }
-            mChannelAvailable = false;
+            if(mAllowAddChannel) { mListener.onAllowAddChannel(false); }
+            mAllowAddChannel = false;
         }
         
     };
@@ -95,7 +106,7 @@ public class ChannelService extends Service
     public interface ChannelChangedListener
     {
         void onChannelChanged(ChannelInfo newInfo);
-        void onChannelAvailable(boolean hasChannel); 
+        void onAllowAddChannel(boolean addChannelAllowed);
     }
     
     public class ChannelServiceComm extends Binder
@@ -125,7 +136,7 @@ public class ChannelService extends Service
         
         void clearAllChannels() { closeAllChannels(); }
         
-        boolean isChannelAvailable() { return mChannelAvailable; }
+        boolean isAddChannelAllowed() { return mAllowAddChannel; }
     }
     
     private void closeAllChannels()
@@ -203,32 +214,28 @@ public class ChannelService extends Service
             if(AntChannelProvider.ACTION_CHANNEL_PROVIDER_STATE_CHANGED.equals(intent.getAction())) {
                 boolean update = false;
                 int numChannels = intent.getIntExtra(AntChannelProvider.NUM_CHANNELS_AVAILABLE, 0);
-                boolean wholeChipInterfaceInUse = intent.getBooleanExtra(AntChannelProvider.WHOLE_CHIP_INTERFACE_IN_USE, false);
+                boolean legacyInterfaceInUse = intent.getBooleanExtra(AntChannelProvider.LEGACY_INTERFACE_IN_USE, false);
                 
-                if(mChannelAvailable) {
-                    // Was a channel available
-                    if(0 == numChannels) {
+                if(mAllowAddChannel) {
+                    // Was a acquire channel allowed
+                    // If no channels available AND legacy interface is not in use, disallow acquiring of channels
+                    if(0 == numChannels && !legacyInterfaceInUse) {
                         // not any more
-                        mChannelAvailable = false;
+                        mAllowAddChannel = false;
                         update = true;
                     }
                 } else {
-                    // No channels were available
-                    if(numChannels > 0) {
+                    // Acquire channels not allowed
+                    // If there are channels OR legacy interface in use, allow acquiring of channels
+                    if(numChannels > 0 || legacyInterfaceInUse) {
                         // now there are
-                        mChannelAvailable = true;
+                        mAllowAddChannel = true;
                         update = true;
                     }
                 }
                 
-                // If whole chip interface in use; allow acquiring of channels
-                if(wholeChipInterfaceInUse) {
-                    mChannelAvailable = true;
-                    update = true;
-                }
-                
                 if(update && (null != mListener)) {
-                    mListener.onChannelAvailable(mChannelAvailable);
+                    mListener.onAllowAddChannel(mAllowAddChannel);
                 }
             }
         }
