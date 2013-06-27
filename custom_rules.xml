@@ -26,6 +26,10 @@
     <property
         name="build.app.dir"
         value="${cvs.android.dir}/build/app-build" />
+		
+	<property
+		name="current.project.dir"
+		value="${basedir}" />
 
     <!--
         Import ANT Wireless custom build rules if present.
@@ -43,5 +47,5 @@
     <import
         file="${build.app.dir}/custom_rules.xml"
         optional="true" />
-
+		
 </project>
