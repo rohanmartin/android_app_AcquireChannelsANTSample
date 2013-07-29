@@ -25,53 +25,42 @@ limitations under the License.
         android:layout_height="wrap_content"
         android:orientation="horizontal">
         
-        <ToggleButton
-            android:id="@+id/toggleButton_MasterSlave"
-            android:layout_width="wrap_content"
-            android:layout_height="fill_parent"
-            android:layout_margin="5dp"
-            android:textOn="Tx"
-            android:textOff="Rx"
-            android:text="Toggle Master/Slave" />
-        
         <Button
-            android:id="@+id/button_AddChannel"
+            android:id="@+id/button_StartTest"
             android:layout_width="wrap_content"
             android:layout_height="fill_parent"
             android:layout_margin="5dp"
-            android:text="Open New Channel" />
+            android:text="Start Test" />
 
         <Button
-            android:id="@+id/button_ClearChannels"
+            android:id="@+id/button_StopTest"
             android:layout_width="wrap_content"
             android:layout_height="fill_parent"
             android:layout_margin="5dp"
-            android:text="Clear Channels" />
+            android:text="Stop Test" />
 
     </LinearLayout>
     
     <View
-	    android:layout_width="fill_parent"
-	    android:layout_height="3dp"
-	    android:background="@android:color/darker_gray"/>
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray"/>
 
     <TextView
         android:id="@+id/textView1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Open Channels: (dev#, [data])" />
+        android:text="@string/test_description" />
 
     <View
-	    android:layout_width="fill_parent"
-	    android:layout_height="1dp"
-	    android:background="@android:color/darker_gray"/>
-
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray"/>
     
     <ListView
         android:id="@+id/listView_channelList"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent">
     </ListView>
-    
 
 </LinearLayout>
