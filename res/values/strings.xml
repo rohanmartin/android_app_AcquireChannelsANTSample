@@ -16,7 +16,6 @@ limitations under the License.
 -->
 <resources>
 
-    <string name="app_name">Acquire Close Channels Test App</string>
-    <string name="test_description">This apps runs a test that acquires all ANT channels that are available to the app as quickly as it can and then closes all of them as soon as it claiming control of the channels. This test will repeat forever as soon as you press Start Test and will stop when you press Stop Test.</string>
+    <string name="app_name">Acquire Channels ANT Sample</string>
 
 </resources>
