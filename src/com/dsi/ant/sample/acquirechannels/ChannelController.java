@@ -33,9 +33,11 @@ import java.util.Random;
 
 public class ChannelController
 {
+    // The device type and transmission type to be part of the channel ID message
     private static final int CHANNEL_PROOF_DEVICE_TYPE = 0x08;
     private static final int CHANNEL_PROOF_TRANSMISSION_TYPE = 1;
     
+    // The period and frequency values the channel will be configured to
     private static final int CHANNEL_PROOF_PERIOD = 32768; // 1 Hz
     private static final int CHANNEL_PROOF_FREQUENCY = 77;
     
@@ -88,15 +90,26 @@ public class ChannelController
                 ChannelType channelType = (mChannelInfo.isMaster ? 
                         ChannelType.BIDIRECTIONAL_MASTER : ChannelType.BIDIRECTIONAL_SLAVE);
 
+                // Channel ID message contains device number, type and transmission type. In 
+                // order for master (TX) channels and slave (RX) channels to connect, they 
+                // must have the same channel ID, or wildcard (0) is used.
                 ChannelId channelId = new ChannelId(mChannelInfo.deviceNumber, 
                         CHANNEL_PROOF_DEVICE_TYPE, CHANNEL_PROOF_TRANSMISSION_TYPE);
                 
                 try
                 {
+                    // Setting the channel event handler so that we can receive messages from ANT
                     mAntChannel.setChannelEventHandler(mChannelEventCallback);
                     
+                    // Performs channel assignment by assigning the type to the channel. Additional 
+                    // features (such as, background scanning and frequency agility) can be enabled 
+                    // by passing an ExtendedAssignment object to assign(ChannelType, ExtendedAssignment).
                     mAntChannel.assign(channelType);
+                    
                     /*
+                     * Configures the channel ID, messaging period and rf frequency after assigning, 
+                     * then opening the channel.
+                     * 
                      * For any additional ANT features such as proximity search or background scanning, refer to 
                      * the ANT Protocol Doc found at: 
                      * http://www.thisisant.com/resources/ant-message-protocol-and-usage/
@@ -124,6 +137,10 @@ public class ChannelController
         return mIsOpen;
     }
 
+    /**
+     * Implements the Channel Event Handler Interface so that messages can be
+     * received and channel death events can be handled.
+     */
     public class ChannelEventCallback implements IAntChannelEventHandler
     {
         private void updateData(byte[] data) {
@@ -135,6 +152,7 @@ public class ChannelController
         @Override
         public void onChannelDeath()
         {
+            // Display channel death message when channel dies
             displayChannelError("Channel Death");
         }
         
@@ -142,10 +160,12 @@ public class ChannelController
         public void onReceiveMessage(MessageFromAntType messageType, AntMessageParcel antParcel) {
             Log.d(TAG, "Rx: "+ antParcel);
 
+            // Switching on message type to handle different types of messages
             switch(messageType)
             {
+                // If data message, construct from parcel and update channel data
                 case BROADCAST_DATA:
-                 // Rx Data
+                    // Rx Data
                     updateData(new BroadcastDataMessage(antParcel).getPayload());
                     break;
                 case ACKNOWLEDGED_DATA:
@@ -153,8 +173,10 @@ public class ChannelController
                     updateData(new AcknowledgedDataMessage(antParcel).getPayload());
                     break;
                 case CHANNEL_EVENT:
+                    // Constructing channel event message from parcel
                     ChannelEventMessage eventMessage = new ChannelEventMessage(antParcel);
                     
+                    // Switching on event code to handle the different types of channel events
                     switch(eventMessage.getEventCode())
                     {
                         case TX:
@@ -166,6 +188,7 @@ public class ChannelController
                             if(mIsOpen)
                             {
                                 try {
+                                    // Setting the data to be broadcast on the next channel period
                                     mAntChannel.setBroadcastData(mChannelInfo.broadcastData);
                                 } catch (RemoteException e) {
                                     channelError(e);
@@ -202,7 +225,6 @@ public class ChannelController
             }
         }
     }
-    
     
     public ChannelInfo getCurrentInfo()
     {
@@ -256,7 +278,6 @@ public class ChannelController
         displayChannelError("ANT Command Failed");
     }
     
-    
     public void close()
     {
         // TODO kill all our resources
@@ -264,6 +285,8 @@ public class ChannelController
         {
             mIsOpen = false;
             
+            // Releasing the channel to make it available for others. 
+            // After releasing, the AntChannel instance cannot be reused.
             mAntChannel.release();
             mAntChannel = null;
         }

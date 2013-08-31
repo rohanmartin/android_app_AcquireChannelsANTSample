@@ -60,12 +60,18 @@ public class ChannelService extends Service
         @Override
         public void onServiceConnected(ComponentName name, IBinder service)
         {
+            // Must pass in the received IBinder object to correctly construct an AntService object
             mAntRadioService = new AntService(service);
             
             try {
+                // Getting a channel provider in order to acquire channels
                 mAntChannelProvider = mAntRadioService.getChannelProvider();
                 
+                // Initial check for number of channels available
                 boolean mChannelAvailable = mAntChannelProvider.getNumChannelsAvailable() > 0;
+                // Initial check for if legacy interface is in use. If the
+                // legacy interface is in use, applications can free the ANT
+                // radio by attempting to acquire a channel.
                 boolean legacyInterfaceInUse = mAntChannelProvider.isLegacyInterfaceInUse();
                 
                 // If there are channels OR legacy interface in use, allow adding channels
@@ -79,7 +85,8 @@ public class ChannelService extends Service
                 
                 if(mAllowAddChannel) {
                     if(null != mListener) {
-                    mListener.onAllowAddChannel(mAllowAddChannel);
+                        // Send an event that indicates if adding channels is allowed
+                        mListener.onAllowAddChannel(mAllowAddChannel);
                     }
                 }
                 
@@ -105,17 +112,43 @@ public class ChannelService extends Service
     
     public interface ChannelChangedListener
     {
+        /**
+         * Occurs when a Channel's Info has changed (i.e. a newly created
+         * channel, channel has transmitted or received data, or if channel has
+         * been closed.
+         * 
+         * @param newInfo The channel's updated info
+         */
         void onChannelChanged(ChannelInfo newInfo);
+        
+        /**
+         * Occurs when there is adding a channel is being allowed or disallowed.
+         * 
+         * @param addChannelAllowed True if adding channels is allowed. False, otherwise.
+         */
         void onAllowAddChannel(boolean addChannelAllowed);
     }
     
+    /**
+     * The interface used to communicate with the ChannelService
+     */
     public class ChannelServiceComm extends Binder
     {
+        /**
+         * Sets the listener to be used for channel changed event callbacks.
+         * 
+         * @param listener The listener that will receive events
+         */
         void setOnChannelChangedListener(ChannelChangedListener listener)
         {
             mListener = listener;
         }
         
+        /**
+         * Retrieves the current info for all channels currently added.
+         * 
+         * @return A list that contains info for all the channels
+         */
         ArrayList<ChannelInfo> getCurrentChannelInfoForAllChannels()
         {
             ArrayList<ChannelInfo> retList = new ArrayList<ChannelInfo>();
@@ -129,13 +162,27 @@ public class ChannelService extends Service
             return retList;
         }
         
+        /**
+         * Acquires and adds a channel from ANT Radio Service
+         * 
+         * @param isMaster True if channel is transmitting, False if channel is receiving
+         * @return The info for the newly acquired and added channel
+         * @throws ChannelNotAvailableException
+         */
         ChannelInfo addNewChannel(final boolean isMaster) throws ChannelNotAvailableException
         {
             return createNewChannel(isMaster);
         }
         
+        /**
+         * Closes all channels currently added.
+         */
         void clearAllChannels() { closeAllChannels(); }
         
+        /**
+         * Queries if adding a channel is allowed.
+         * @return True if adding a channel is allowed. False, otherwise.
+         */
         boolean isAddChannelAllowed() { return mAllowAddChannel; }
     }
     
@@ -143,6 +190,7 @@ public class ChannelService extends Service
     {
         synchronized (mChannelControllerList)
         {
+            // Closing all channels in the list
             for(int i = 0; i <  mChannelControllerList.size(); i++)
             {
                 mChannelControllerList.valueAt(i).close();
@@ -161,6 +209,15 @@ public class ChannelService extends Service
         {
             try
             {
+                /*
+                 * If applications require a channel with specific capabilities
+                 * (event buffering, background scanning etc.), a Capabilities
+                 * object should be created and then the specific capabilities
+                 * required set to true. Applications can specify both required
+                 * and desired Capabilities with both being passed in
+                 * acquireChannel(context, PredefinedNetwork,
+                 * requiredCapabilities, desiredCapabilities).
+                 */
                 mAntChannel = mAntChannelProvider.acquireChannel(this, PredefinedNetwork.PUBLIC);
             } catch (RemoteException e)
             {
@@ -176,6 +233,7 @@ public class ChannelService extends Service
       
         synchronized(mCreateChannel_LOCK)
         {
+            // Acquiring a channel from ANT Radio Service
             AntChannel antChannel = acquireChannel();
             
             if(null != antChannel)
@@ -183,12 +241,14 @@ public class ChannelService extends Service
 
                 channelDeviceIdCounter += 1;
 
+                // Constructing a controller that will manage and control the channel
                 channelController = new ChannelController(antChannel, isMaster, channelDeviceIdCounter, 
                         new ChannelBroadcastListener()
                 {                        
                     @Override
                     public void onBroadcastChanged(ChannelInfo newInfo)
                     {
+                        // Sending a channel changed event when message from ANT is received
                         mListener.onChannelChanged(newInfo);
                     }
                 });
@@ -208,6 +268,9 @@ public class ChannelService extends Service
         return new ChannelServiceComm();
     }
     
+    /**
+     * Receives AntChannelProvider state changes being sent from ANT Radio Service
+     */
     private final BroadcastReceiver mChannelProviderStateChangedReceiver = new BroadcastReceiver()
     {
         @Override
@@ -215,6 +278,7 @@ public class ChannelService extends Service
         {
             if(AntChannelProvider.ACTION_CHANNEL_PROVIDER_STATE_CHANGED.equals(intent.getAction())) {
                 boolean update = false;
+                // Retrieving the data contained in the intent
                 int numChannels = intent.getIntExtra(AntChannelProvider.NUM_CHANNELS_AVAILABLE, 0);
                 boolean legacyInterfaceInUse = intent.getBooleanExtra(AntChannelProvider.LEGACY_INTERFACE_IN_USE, false);
                 
@@ -222,7 +286,6 @@ public class ChannelService extends Service
                     // Was a acquire channel allowed
                     // If no channels available AND legacy interface is not in use, disallow acquiring of channels
                     if(0 == numChannels && !legacyInterfaceInUse) {
-                        // not any more
                         mAllowAddChannel = false;
                         update = true;
                     }
@@ -230,13 +293,13 @@ public class ChannelService extends Service
                     // Acquire channels not allowed
                     // If there are channels OR legacy interface in use, allow acquiring of channels
                     if(numChannels > 0 || legacyInterfaceInUse) {
-                        // now there are
                         mAllowAddChannel = true;
                         update = true;
                     }
                 }
                 
                 if(update && (null != mListener)) {
+                    // AllowAddChannel has been changed, sending event callback
                     mListener.onAllowAddChannel(mAllowAddChannel);
                 }
             }
@@ -247,9 +310,11 @@ public class ChannelService extends Service
     {
         if(BuildConfig.DEBUG) Log.v(TAG, "doBindAntRadioService");
         
-     // Start listing for channel available intents
+        // Start listing for channel available intents
         registerReceiver(mChannelProviderStateChangedReceiver, new IntentFilter(AntChannelProvider.ACTION_CHANNEL_PROVIDER_STATE_CHANGED));
         
+        // Creating the intent and calling context.bindService() is handled by
+        // the static bindService() method in AntService
         mAntRadioServiceBound = AntService.bindService(this, mAntRadioServiceConnection);
     }
     
@@ -257,7 +322,7 @@ public class ChannelService extends Service
     {
         if(BuildConfig.DEBUG) Log.v(TAG, "doUnbindAntRadioService");
         
-     // Stop listing for channel available intents
+        // Stop listing for channel available intents
         try{
             unregisterReceiver(mChannelProviderStateChangedReceiver);
         } catch (IllegalArgumentException exception) {

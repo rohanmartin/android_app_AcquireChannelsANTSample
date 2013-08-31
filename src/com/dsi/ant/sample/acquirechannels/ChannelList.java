@@ -83,7 +83,7 @@ public class ChannelList extends Activity {
             }
         });
         
-      //Register Clear Channels Button handler
+        //Register Clear Channels Button handler
         Button button_clearChannels = (Button)findViewById(R.id.button_ClearChannels);
         button_clearChannels.setEnabled(mChannelServiceBound);
         button_clearChannels.setOnClickListener(new OnClickListener()
@@ -102,7 +102,8 @@ public class ChannelList extends Activity {
     {
         Log.v(TAG, "initPrefs...");
         
-        //Handle resuming the current state of data collection as saved in the preference
+        // Retrieves the app's current state of channel transmission mode 
+        // from preferences to handle app resuming.
         SharedPreferences preferences = getPreferences(MODE_PRIVATE);
         
         mCreateChannelAsMaster = preferences.getBoolean(PREF_TX_BUTTON_CHECKED_KEY, true);
@@ -114,6 +115,7 @@ public class ChannelList extends Activity {
     {
         Log.v(TAG, "savePrefs...");
         
+        // Saves the app's current state of channel transmission mode to preferences
         SharedPreferences preferences = getPreferences(MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         
@@ -128,6 +130,8 @@ public class ChannelList extends Activity {
     {
         Log.v(TAG, "doBindChannelService...");
         
+        // Binds to ChannelService. ChannelService binds and manages connection between the 
+        // app and the ANT Radio Service
         Intent bindIntent = new Intent(this, ChannelService.class);
         startService(bindIntent);
         mChannelServiceBound = bindService(bindIntent, mChannelServiceConnection, Context.BIND_AUTO_CREATE);
@@ -215,8 +219,10 @@ public class ChannelList extends Activity {
             
             mChannelService = (ChannelServiceComm) serviceBinder;
             
+            // Sets a listener that handles channel events
             mChannelService.setOnChannelChangedListener(new ChannelChangedListener()
             {
+                // Occurs when a channel has new info/data
                 @Override
                 public void onChannelChanged(final ChannelInfo newInfo)
                 {
@@ -236,13 +242,17 @@ public class ChannelList extends Activity {
                     }
                 }
 
+                // Updates the UI to allow/disallow acquiring new channels 
                 @Override
                 public void onAllowAddChannel(boolean addChannelAllowed) {
+                    // Enable Add Channel button and Master/Slave toggle if
+                    // adding channels is allowed
                     ((Button)findViewById(R.id.button_AddChannel)).setEnabled(addChannelAllowed);
                     ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(addChannelAllowed);
                 }
             });
 
+            // Initial check when connecting to ChannelService if adding channels is allowed
             boolean allowAcquireChannel = mChannelService.isAddChannelAllowed();
             ((Button)findViewById(R.id.button_AddChannel)).setEnabled(allowAcquireChannel);
             ((Button)findViewById(R.id.toggleButton_MasterSlave)).setEnabled(allowAcquireChannel);
@@ -257,6 +267,7 @@ public class ChannelList extends Activity {
         {
             Log.v(TAG, "mChannelServiceConnection.onServiceDisconnected...");
             
+            // Clearing and disabling when disconnecting from ChannelService
             mChannelService = null;
             
             ((Button)findViewById(R.id.button_ClearChannels)).setEnabled(false);
@@ -267,6 +278,7 @@ public class ChannelList extends Activity {
         }
     };
     
+    // This method is called when 'Add Channel' button is clicked
     private void addNewChannel(final boolean isMaster)
     {
         Log.v(TAG, "addNewChannel...");
@@ -276,15 +288,21 @@ public class ChannelList extends Activity {
             ChannelInfo newChannelInfo;
             try
             {
+                // Telling the ChannelService to add a new channel. This method
+                // in ChannelService contains code required to acquire an ANT
+                // channel from ANT Radio Service.
                 newChannelInfo = mChannelService.addNewChannel(isMaster);
             } catch (ChannelNotAvailableException e)
             {
+                // Occurs when a channel is not available. Printing out the
+                // stack trace will show why no channels are available.
                 Toast.makeText(this, "Channel Not Available", Toast.LENGTH_SHORT).show();
                 return;
             }
             
             if(null != newChannelInfo)
             {
+                // Adding new channel info to the list
                 addChannelToList(newChannelInfo);
                 mChannelListAdapter.notifyDataSetChanged();
             }
@@ -356,6 +374,7 @@ public class ChannelList extends Activity {
         
         if(null != mChannelService)
         {
+            // Telling ChannelService to close all the channels
             mChannelService.clearAllChannels();
 
             mChannelDisplayList.clear();
