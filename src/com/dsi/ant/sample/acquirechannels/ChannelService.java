@@ -150,6 +150,8 @@ public class ChannelService extends Service
             mChannelControllerList.clear();
         }
         
+        // Reset the device id counter
+        channelDeviceIdCounter = 0;
     }
 
     AntChannel acquireChannel() throws ChannelNotAvailableException
