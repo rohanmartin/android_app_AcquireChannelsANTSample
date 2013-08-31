@@ -224,16 +224,30 @@ public class ChannelController
     }
     
     void channelError(String error, AntCommandFailedException e) {
-        String initiatingMessageId = "0x"+ Integer.toHexString(
-                e.getResponseMessage().getInitiatingMessageId());
-        String rawResponseCode = "0x"+ Integer.toHexString(
-                e.getResponseMessage().getRawResponseCode());
+        StringBuilder logString;
         
-        StringBuilder logString = new StringBuilder(error)
-                .append(". Command ")
-                .append(initiatingMessageId)
-                .append(" failed with code ")
-                .append(rawResponseCode);
+        if(e.getResponseMessage() != null) {
+            String initiatingMessageId = "0x"+ Integer.toHexString(
+                    e.getResponseMessage().getInitiatingMessageId());
+            String rawResponseCode = "0x"+ Integer.toHexString(
+                    e.getResponseMessage().getRawResponseCode());
+            
+            logString = new StringBuilder(error)
+                    .append(". Command ")
+                    .append(initiatingMessageId)
+                    .append(" failed with code ")
+                    .append(rawResponseCode);
+        } else {
+            String attemptedMessageId = "0x"+ Integer.toHexString(
+                    e.getAttemptedMessageType().getMessageId());
+            String failureReason = e.getFailureReason().toString();
+            
+            logString = new StringBuilder(error)
+            .append(". Command ")
+            .append(attemptedMessageId)
+            .append(" failed with reason ")
+            .append(failureReason);
+        }
                 
         Log.e(TAG, logString.toString());
         
