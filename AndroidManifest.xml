@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.dsi.ant.sample.acquirechannels"
-    android:versionCode="010003"
-    android:versionName="01.00.03" >
+    android:versionCode="010004"
+    android:versionName="01.00.04" >
     <uses-sdk
         android:minSdkVersion="7"
         android:targetSdkVersion="17" />
