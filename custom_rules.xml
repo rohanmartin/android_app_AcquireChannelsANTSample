@@ -19,17 +19,37 @@
 <project>
     <!-- version-tag: 1 -->
 
+    <!--
+        Location of ANT Wireless custom build scripts on fileshare.
+    -->
     <property
-        name="cvs.android.dir"
-        value="${dsicvs.dir}/Products/android" />
+        name="fileshare.android.dir"
+        value="//dsifs/dsi/wireless/Eng/Android" />
 
+    <!--
+        Location of ANT Wireless custom build rules.
+    -->
     <property
         name="build.app.dir"
-        value="${cvs.android.dir}/build/app-build" />
-		
-	<property
-		name="current.project.dir"
-		value="${basedir}" />
+        value="${fileshare.android.dir}/build/app-build" />
+
+    <!--
+        Location of ANT Wireless keystore file.
+    -->
+    <property
+        name="key.store"
+        value="${fileshare.android.dir}/Sign/Apps/keystore" />
+
+    <!--
+        Name of key from the keystore file.
+    -->
+    <property
+        name="key.alias"
+        value="appkey" />
+
+    <property
+        name="current.project.dir"
+        value="${basedir}" />
 
     <!--
         Import ANT Wireless custom build rules if present.
@@ -47,5 +67,5 @@
     <import
         file="${build.app.dir}/custom_rules.xml"
         optional="true" />
-		
+
 </project>
